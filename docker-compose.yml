@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  # The main API backend (Rust)
+  dendrum-server:
+    image: kareldewitte/dendrum-server:preview-community 
+    platform: linux/amd64
+    hostname: dendrum-server
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    volumes:
+      # Links the shared data volume
+      - dendrum-server:/data
+      # Links your local config file into the container
+      - ./processing_config.toml:/app/processing_config.toml:ro
+    environment:
+      - OPENAI_TOKEN=${OPENAI_TOKEN}
+      - BIND_ADRESS=0.0.0.0:8001
+      - SERVICE_MODE=node
+      - RUST_LOG=info
+
+  # The background merger service (Rust)
+  dendrum-merger:
+    image: kareldewitte/dendrum-server:preview-community 
+    platform: linux/amd64
+    restart: unless-stopped
+    volumes:
+      # Needs access to the same data volume
+      - dendrum-server:/data
+      # Needs access to the same config file
+      - ./processing_config.toml:/app/processing_config.toml:ro
+    environment:
+      - OPENAI_TOKEN=${OPENAI_TOKEN}
+      - SERVICE_MODE=merger
+      - RUST_LOG=info
+    depends_on:
+      - dendrum-server
+
+  # The web frontend (Nuxt)
+  dendrum-frontend:
+    image: kareldewitte/dendrum-front:preview-community 
+    platform: linux/amd64
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+    depends_on:
+      - dendrum-server

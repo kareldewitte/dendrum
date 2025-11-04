@@ -41,7 +41,7 @@ version: '3.8'
 services:
   # The main API backend (Rust)
   dendrum-server:
-    image: DOCKER_IMAGE_NAME/dendrum-server:latest # 
+    image: kareldewitte/dendrum-server:preview-community
     platform: linux/amd64
     hostname: dendrum-server
     restart: unless-stopped
@@ -60,7 +60,7 @@ services:
 
   # The background merger service (Rust)
   dendrum-merger:
-    image: DOCKER_IMAGE_NAME/dendrum-server:latest # <-- TODO: Replace with your image name
+    image: kareldewitte/dendrum-server:preview-community
     platform: linux/amd64
     restart: unless-stopped
     volumes:
@@ -77,7 +77,7 @@ services:
 
   # The web frontend (Nuxt)
   dendrum-frontend:
-    image: DOCKER_IMAGE_NAME/dendrum-front:latest # <-- TODO: Replace with your image name
+    image: kareldewitte/dendrum-front:preview-community
     platform: linux/amd64
     restart: unless-stopped
     ports:
