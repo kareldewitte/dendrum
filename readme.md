@@ -1,7 +1,7 @@
 Dendrum is a high-performance, local-first RAG (Retrieval-Augmented Generation) system. It allows you to ingest documents into a local vector database and use a web interface to search and chat with your data.
 
 # Features
-⚡ High-Performance Backend: The darkice API is built in Rust using the axum framework for high throughput and low memory usage. Fully accessible via API. Build your own ingestion runners and send data to backend.
+⚡ High-Performance Backend: The dendrum API is built in Rust using the axum framework for high throughput and low memory usage. Fully accessible via API. Build your own ingestion runners and send data to backend.
 
 ⚡ Modern Frontend: A responsive and easy-to-use web interface built with Nuxt.
 
@@ -40,7 +40,7 @@ version: '3.8'
 
 services:
   # The main API backend (Rust)
-  darkice-backend:
+  dendrum-server:
     image: DOCKER_IMAGE_NAME/dendrum-server:latest # 
     platform: linux/amd64
     hostname: dendrum-server
@@ -59,7 +59,7 @@ services:
       - RUST_LOG=info
 
   # The background merger service (Rust)
-  darkice-merger:
+  dendrum-merger:
     image: DOCKER_IMAGE_NAME/dendrum-server:latest # <-- TODO: Replace with your image name
     platform: linux/amd64
     restart: unless-stopped
@@ -76,7 +76,7 @@ services:
       - dendrum-server
 
   # The web frontend (Nuxt)
-  darkfront-frontend:
+  dendrum-frontend:
     image: DOCKER_IMAGE_NAME/dendrum-front:latest # <-- TODO: Replace with your image name
     platform: linux/amd64
     restart: unless-stopped
@@ -92,7 +92,7 @@ services:
 # Define the named volume for persistent data
 ```
 volumes:
-  darkice_data:
+  dendrum_data:
 ```
 
 2. processing_config.toml
@@ -179,11 +179,11 @@ model = "llama3"
 (Note: For Ollama to work from inside a Docker container, you may need to set the OLLAMA_HOST environment variable in your docker-compose.yml to point to your host machine's IP, e.g., http://host.docker.internal:11434)
 
 Persistent Data
-Your DuckDB database, Parquet files, and WAL file are all stored in the darkice_data Docker volume. This means your data is safe even if you stop and remove the containers.
+Your DuckDB database, Parquet files, and WAL file are all stored in the dendrum_data Docker volume. This means your data is safe even if you stop and remove the containers.
 
 To "reset" your database, you can stop the services and remove the volume:
 
 ```Bash
 docker-compose down
-docker volume rm my-darkice-server_darkice_data
+docker volume rm my-dendrum-server_dendrum_data
 ```
