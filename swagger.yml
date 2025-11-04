@@ -1,0 +1,501 @@
+openapi: 3.0.0
+info:
+  title: DarkIce RAG API
+  version: 0.1.0
+  description: API for the DarkIce local-first RAG (Retrieval-Augmented Generation) system.
+servers:
+  - url: http://localhost:8001
+    description: Local development server
+
+tags:
+  - name: Ingestion
+    description: Endpoints for adding documents and checking job status.
+  - name: RAG
+    description: Endpoints for search and chat (RAG).
+  - name: Observability
+    description: Endpoints for system statistics.
+  - name: Internal
+    description: Internal system endpoints for configuration and maintenance.
+
+paths:
+  /add-document:
+    post:
+      tags:
+        - Ingestion
+      summary: Add a single document
+      description: Adds a single document directly from a JSON payload. This is a low-level endpoint. It is generally recommended to use /add-file.
+      operationId: add_document_handler
+      requestBody:
+        description: The document to add.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Document'
+      responses:
+        '200':
+          description: Document added successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /job-status/{job_id}:
+    get:
+      tags:
+        - Ingestion
+      summary: Get ingestion job status
+      description: Retrieves the current status of a specific ingestion job by its UUID.
+      operationId: ingestion_status_handler
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          description: The UUID of the ingestion job.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The status of the ingestion job.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestionJob'
+        '404':
+          description: Job not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /add-file:
+    post:
+      tags:
+        - Ingestion
+      summary: Upload a file for ingestion
+      description: Uploads a file (e.g., PDF, TXT) via multipart/form-data. This creates an ingestion job and returns the job details.
+      operationId: add_file_ingestion_handler
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The file to upload.
+      responses:
+        '200':
+          description: File upload successful, ingestion job created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestionJob'
+        '500':
+          description: Internal server error during file processing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+
+  /search:
+    post:
+      tags:
+        - RAG
+      summary: Perform semantic search
+      description: Performs a k-nearest neighbor (KNN) semantic search over the vector index.
+      operationId: search_handler
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchRequest'
+      responses:
+        '200':
+          description: A list of search results (chunks) with their scores.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SearchResult'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /rag:
+    post:
+      tags:
+        - RAG
+      summary: Start a RAG job
+      description: Starts a new Retrieval-Augmented Generation (RAG) job. This performs a search, constructs a prompt, and generates an answer.
+      operationId: start_rag_handler
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RagRequest'
+      responses:
+        '200':
+          description: RAG job started successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RagJob'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /rag/{job_id}/status:
+    get:
+      tags:
+        - RAG
+      summary: Get RAG job status
+      description: Retrieves the status, context, and answer (if ready) for a specific RAG job.
+      operationId: get_rag_status_handler
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          description: The UUID of the RAG job.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The RAG job details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RagJob'
+        '404':
+          description: Job not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /stats:
+    get:
+      tags:
+        - Observability
+      summary: Get general system statistics
+      description: Retrieves general statistics, such as the total number of documents and chunks in the database.
+      operationId: general_stats_handler
+      responses:
+        '200':
+          description: System statistics.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeneralStats'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /delete-all:
+    delete:
+      tags:
+        - Ingestion
+      summary: Delete all data
+      description: Deletes all documents, chunks, and ingestion jobs from the database. This is a destructive operation.
+      operationId: delete_all_handler
+      responses:
+        '200':
+          description: All data deleted successfully.
+          content:
+            application/json:
+              schema:
+                type: string
+                example: "All documents and chunks deleted."
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+# Internal endpoints (not for public use)
+  /_internal/get-config:
+    get:
+      tags:
+        - Internal
+      summary: Get current configuration
+      description: Retrieves the currently loaded processing_config.toml from the server.
+      operationId: config_handler
+      responses:
+        '200':
+          description: The server's current processing configuration.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessingConfig'
+
+  /_internal/merge:
+    post:
+      tags:
+        - Internal
+      summary: Trigger a database merge
+      description: Manually triggers the merge of a Parquet file into the main DuckDB database. This is normally called by the darkice-merger service.
+      operationId: merge_database_handler
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MergeDatabaseRequest'
+      responses:
+        '200':
+          description: Merge successful.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Merge successful"
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /_internal/search:
+    post:
+      tags:
+        - Internal
+      summary: Internal search
+      description: An internal endpoint for performing a direct search, returning full chunk data.
+      operationId: internal_search_handler
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InternalSearchRequest'
+      responses:
+        '200':
+          description: A list of chunks.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Chunk'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+components:
+  schemas:
+    Document:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        source_id:
+          type: string
+        source_type:
+          type: string
+        content:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+
+    IngestionJobRequest:
+      type: object
+      required:
+        - file_name
+        - document_id
+      properties:
+        file_name:
+          type: string
+        document_id:
+          type: string
+          format: uuid
+
+    IngestionJob:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        file_name:
+          type: string
+          nullable: true
+        document_id:
+          type: string
+          format: uuid
+          nullable: true
+        status:
+          type: string
+          example: "Pending"
+        message:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    SearchRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          example: "What is DuckDB?"
+        k:
+          type: integer
+          format: int32
+          default: 5
+          description: The number of results to return.
+
+    Chunk:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        document_id:
+          type: string
+          format: uuid
+        chunk_index:
+          type: integer
+        content:
+          type: string
+        embedding:
+          type: array
+          items:
+            type: number
+            format: float
+          description: "Note: This is often omitted from the JSON response for brevity."
+          nullable: true
+
+    SearchResult:
+      type: object
+      properties:
+        chunk:
+          $ref: '#/components/schemas/Chunk'
+        score:
+          type: number
+          format: float
+
+    RagRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          example: "What is DuckDB and how does it relate to HNSW?"
+
+    RagJob:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          example: "Completed"
+        query:
+          type: string
+        context:
+          type: string
+          nullable: true
+        answer:
+          type: string
+          nullable: true
+        error:
+          type: string
+          nullable: true
+
+    GeneralStats:
+      type: object
+      properties:
+        documents_count:
+          type: integer
+          format: int64
+        chunks_count:
+          type: integer
+          format: int64
+
+    MergeDatabaseRequest:
+      type: object
+      required:
+        - file_path
+      properties:
+        file_path:
+          type: string
+          description: The absolute path *inside the container* to the Parquet file to be merged.
+          example: "/data/pq/merged.parquet"
+
+    InternalSearchRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+
+    ProcessingConfig:
+      type: object
+      properties:
+        defaults:
+          type: object
+          properties:
+            system:
+              type: object
+              properties:
+                db_path:
+                  type: string
+            planner_llm:
+              $ref: '#/components/schemas/LLMConfig'
+            generator_llm:
+              $ref: '#/components/schemas/LLMConfig'
+
+    LLMConfig:
+      type: object
+      properties:
+        provider:
+          type: string
+          example: "Ollama"
+        model:
+          type: string
+          example: "mistral"
+
+    ApiError:
+      type: object
+      properties:
+        status_code:
+          type: integer
+          example: 500
+        message:
+          type: string
+          example: "Internal server error"
