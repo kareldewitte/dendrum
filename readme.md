@@ -1,4 +1,4 @@
-![alt text](assets/logo-dendrum.jpeg)
+![logo |512x512](assets/logo-dendrum.jpeg)
 
 
 
