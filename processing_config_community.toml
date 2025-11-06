@@ -1,0 +1,255 @@
+# processing_config.toml
+# A generic, multi-domain, multi-modal configuration for the data ingestion pipeline.
+# --- Default settings inherited by all domains unless overridden ---
+[defaults]
+  [defaults.system]
+  db_path = "/data/dbs/darkice_database_pubmed.db" 
+  
+  # For openai and other remote APIs, the API key is read from the OPENAI_TOKEN environment variable.
+  # provider can be "OpenAI", "Ollama", or others as implemented.
+  # model is the specific model name to use. can be mistral, llama2, gpt-4, etc. 
+  [defaults.planner_llm]
+  provider = "OpenAI"
+  model = "gpt-5-mini"
+
+  [defaults.generator_llm]
+  provider = "OpenAI"
+  model = "gpt-5-mini"
+  
+  [defaults.text_embedding]
+  # Using a sentence-transformer model good for semantic search in English.
+  # Domain-specific models can override this.
+  model = "minishlab/potion-base-8M"
+  
+  [defaults.image_embedding]
+  # A standard CLIP model for zero-shot image and text embeddings.
+  # Not Implemented yet, but placeholder for future use.
+  model = "clip-ViT-B-32"
+
+
+# --- Domain 3: Technical & Scientific Manuals ---
+# Processes long-form, structured documents like technical guides, scientific papers, and manuals.
+# This profile is specifically tuned for documents like the FAO aquaponics guide (aqua.pdf).
+[domain.technical_manual]
+name = "Technical Manuals & Guides"
+description = "Processes PDF documents with a clear chapter/section hierarchy and key data points."
+version = "1.0"
+
+  # The primary pipeline is for processing complex PDF documents.
+  [[domain.technical_manual.pipeline]]
+  modality = "document"
+  file_types = ["pdf"]
+  
+    [domain.technical_manual.pipeline.pre_processing]
+    # OCR is a useful first step to ensure text is extracted from any diagrams or scanned pages.
+    #unimplemented yet
+    steps = ["ocr_if_needed"]
+
+    [domain.technical_manual.pipeline.splitting]
+    # RecursiveCharacter is best for handling the complex layouts, tables, and headers in a technical manual.
+    strategy = "RecursiveCharacter"
+    max_chunk_size = 512 # In tokens
+
+    [domain.technical_manual.pipeline.enrichment]
+    # This section defines the document's structure. The regex uses capture groups
+    # to extract both the number and the title of the section for rich metadata.
+    [domain.technical_manual.pipeline.enrichment.sections]
+    Chapter = '(?i)^chapter\s+(\d+)\s*–\s*(.*)'
+    Section = '(?i)^(\d+\.\d+)\s+(.*)'
+    Subsection = '(?i)^(\d+\.\d+\.\d+)\s+(.*)'
+
+    # Extractors are the core of the enrichment, finding and labeling critical information.
+    [[domain.technical_manual.pipeline.enrichment.extractors]]
+    type = "regex"
+    name = "key_quantitative_ratios"
+    description = "Extracts the most important numerical data for system design."
+      [domain.technical_manual.pipeline.enrichment.extractors.entities]
+      # Finds the feed rate ratio, e.g., "40–50 g/m2/day"
+      FeedRateRatio = '(\d{2}–\d{2}\s*g/m2/day)'
+      # Finds the planting density, e.g., "20–25 plants per square metre"
+      PlantingDensity = '(\d{1,2}–\d{1,2}\s*plants\s*per\s*square\s*metre)'
+      # Finds the fish stocking density, e.g., "10–20 kg/1 000 litres"
+      StockingDensity = '(\d{2}–\d{2}\s*kg/\d{3,4}\s*litres)'
+
+    [[domain.technical_manual.pipeline.enrichment.extractors]]
+    type = "regex"
+    name = "key_qualitative_entities"
+    description = "Extracts important domain-specific nouns and concepts."
+      [domain.technical_manual.pipeline.enrichment.extractors.entities]
+      # Finds common fish species mentioned in the text
+      FishSpecies = '\b(?i)(tilapia|trout|catfish|carp)\b'
+      # Finds common plant species mentioned
+      PlantSpecies = '\b(?i)(lettuce|tomato(?:es)?|cucumber|basil|kale)\b'
+      # Finds key system components
+      SystemComponent = '\b(?i)(media\s*bed|fish\s*tank|biofilter|water\s*pump|sump\s*tank)\b'
+
+    [[domain.technical_manual.pipeline.enrichment.extractors]]
+    type = "ner_model"
+    name = "general_scientific_ner"
+    description = "A fallback model to catch scientific terms not covered by regex."
+    model_path = "/models/SciBERT-NER"
+    # This would find and tag general scientific terms, materials, chemicals, etc.
+
+
+# --- Domain 5: Biomedical & Public Health Research ---
+# Processes scientific articles from sources like PubMed, focusing on study design, metrics, and outcomes.
+[domain.biomedical_research]
+name = "Biomedical & Public Health Research"
+description = "Processes scientific papers, extracting key metrics, medical conditions, and study components."
+version = "1.0"
+
+  # The pipeline processes text-based content, typically from JSONL files.
+  [[domain.biomedical_research.pipeline]]
+  modality = "text"
+  file_types = ["json", "jsonl"]
+  
+    [domain.biomedical_research.pipeline.pre_processing]
+    # No pre-processing needed for clean text from JSON.
+    steps = []
+
+    [domain.biomedical_research.pipeline.splitting]
+    # RecursiveCharacter is robust for paragraphs and sentence structures in academic papers.
+    strategy = "RecursiveCharacter"
+    max_chunk_size = 512 # In tokens
+
+    [domain.biomedical_research.pipeline.enrichment]
+    # Defines the common sections of a research paper for structural metadata.
+    [domain.biomedical_research.pipeline.enrichment.sections]
+    Start='(?im)^(Abstract|Introduction|Background)'
+    Abstract = '(?im)^Abstract'
+    Introduction = '(?im)^Introduction'
+    Methods = '(?im)^Methods|Materials and Methods'
+    Results = '(?im)^Results'
+    Discussion = '(?im)^Discussion'
+    Conclusion = '(?im)^Conclusion'
+
+    # Extractors for finding key information in public health and nutritional studies.
+    [[domain.biomedical_research.pipeline.enrichment.extractors]]
+    type = "regex"
+    name = "key_health_metrics"
+    description = "Extracts important health and statistical metrics."
+      [domain.biomedical_research.pipeline.enrichment.extractors.entities]
+      # Finds mentions of Body Mass Index
+      BMI = '\b(BMI|body mass index)\b'
+      # Finds statistical significance values
+      P_Value = '(?i)p\s*[<=]\s*0\.\d+'
+      # Finds key nutritional values
+      Energy = '(\d{2,4}\s*kcal)'
+      Protein = '(\d{1,3}\s*g\s*of\s*protein)'
+      # Finds z-scores for growth standards
+      Z_Score = '(?i)(z-score|z\s*-\s*scores)'
+
+    [[domain.biomedical_research.pipeline.enrichment.extractors]]
+    type = "regex"
+    name = "medical_conditions_and_programs"
+    description = "Extracts specific conditions and named programs from the text."
+      [domain.biomedical_research.pipeline.enrichment.extractors.entities]
+      # Finds common nutritional conditions
+      NutritionalCondition = '\b(?i)(malnutrition|underweight|overweight|obesity|stunted|thinness)\b'
+      # Finds specific program names
+      ProgramName = '\b(nffp|national free food program)\b'
+      DiseaseArea = '\b(?i)(cardiovascular disease|CVD|heart disease|hypertension|high blood pressure|hypotension|low blood pressure|myocardial infarction|heart attack|ischemic heart disease|IHD|coronary artery disease|CAD|stroke|cerebrovascular accident|CVA|heart failure|arrhythmia|atrial fibrillation|afib|thrombosis|atherosclerosis|aneurysm|cancer|neoplasm|carcinoma|sarcoma|leukemia|lymphoma|melanoma|metastasis|tumor|oncology|(lung|breast|prostate|colon|colorectal|pancreatic|ovarian|skin|brain|stomach) cancer|diabetes|diabetes mellitus|type 1 diabetes|T1D|type 2 diabetes|T2D|hyperglycemia|hypoglycemia|obesity|metabolic syndrome|hyperlipidemia|hypercholesterolemia|thyroid disease|hyperthyroidism|hypothyroidism|gout|osteoporosis|alzheimers disease|dementia|parkinsons disease|epilepsy|seizure|multiple sclerosis|MS|migraine|neuropathy|amyotrophic lateral sclerosis|ALS|huntingtons disease|traumatic brain injury|TBI|HIV/AIDS|human immunodeficiency virus|acquired immunodeficiency syndrome|influenza|flu|pneumonia|tuberculosis|TB|hepatitis|COVID-19|coronavirus|malaria|sepsis|meningitis|lyme disease|zika virus|ebola|asthma|chronic obstructive pulmonary disease|COPD|emphysema|chronic bronchitis|pulmonary fibrosis|cystic fibrosis|sleep apnea|depression|major depressive disorder|anxiety|generalized anxiety disorder|bipolar disorder|schizophrenia|post-traumatic stress disorder|PTSD|obsessive-compulsive disorder|OCD|eating disorder|anorexia|bulimia|substance abuse|arthritis|rheumatoid arthritis|RA|osteoarthritis|lupus|systemic lupus erythematosus|SLE|fibromyalgia|back pain|spondylitis)\b'
+      DrugName = '\b(?i)(acetaminophen|paracetamol|Tylenol|Panadol|ibuprofen|Advil|Motrin|naproxen|Aleve|aspirin|diclofenac|celecoxib|Celebrex|codeine|tramadol|morphine|oxycodone|OxyContin|hydrocodone|Vicodin|fentanyl|penicillin|amoxicillin|Augmentin|doxycycline|ciprofloxacin|Cipro|azithromycin|Zithromax|levofloxacin|metronidazole|Flagyl|cephalexin|Keflex|atorvastatin|Lipitor|simvastatin|Zocor|rosuvastatin|Crestor|lisinopril|ramipril|losartan|valsartan|Diovan|amlodipine|Norvasc|metoprolol|Lopressor|atenolol|Tenormin|carvedilol|clopidogrel|Plavix|warfarin|Coumadin|rivaroxaban|Xarelto|apixaban|Eliquis|furosemide|Lasix|hydrochlorothiazide|metformin|Glucophage|insulin|glipizide|glyburide|pioglitazone|Actos|sitagliptin|Januvia|liraglutide|Victoza|semaglutide|Ozempic|Wegovy|dapagliflozin|Farxiga|sertraline|Zoloft|fluoxetine|Prozac|citalopram|Celexa|escitalopram|Lexapro|duloxetine|Cymbalta|venlafaxine|Effexor|bupropion|Wellbutrin|alprazolam|Xanax|lorazepam|Ativan|diazepam|Valium|clonazepam|Klonopin|aripiprazole|Abilify|risperidone|Risperdal|quetiapine|Seroquel|loratadine|Claritin|cetirizine|Zyrtec|fexofenadine|Allegra|diphenhydramine|Benadryl|montelukast|Singulair)\b'
+
+        [[domain.biomedical_research.pipeline.enrichment.extractors]]
+    type = "regex"
+    name = "persistent_identifiers_provenance"
+    description = "Extracts common and persistent identifiers like DOIs, ORCIDs, and standard numbers."
+      [domain.biomedical_research.pipeline.enrichment.extractors.entities]
+      # Digital Object Identifier for articles or datasets
+      DOI = '\\b(10\\.\\d{4,9}/[-._;()/:A-Z0-9]+)\\b'
+      # Handle System persistent identifier
+      Handle = '\\b(hdl:|https?://hdl\\.handle\\.net/)\\S+\\b'
+      # PubMed ID (PMID) and PubMed Central ID (PMCID)
+      PubMedID = '\\b(PMID:\\s*\\d+|PMCID:\\s*PMC\\d+)\\b'
+      # International Standard Serial Number (ISSN) for journals
+      ISSN = '\\b\\d{4}-\\d{3}[\\dX]\\b'
+      # International Standard Book Number (ISBN-13)
+      ISBN13 = '\\b(?:ISBN(?:-13)?:?\\s*)?(97[89][-\\s]?\\d{1,5}[-\\s]?\\d{2,7}[-\\s]?\\d{1,6}[-\\s]?\\d)\\b'
+      # Open Researcher and Contributor ID (ORCID)
+      ORCID = '\\b(?:https?://orcid\\.org/)?(\\d{4}-\\d{4}-\\d{4}-\\d{3}[\\dX])\\b'
+      # Project or Grant Code/Number
+      GrantCode = '(?:Grant|Project)\\s(?:Number|ID|Code):\\s*([A-Z0-9-]{5,})\\b'
+
+    [[domain.biomedical_research.pipeline.enrichment.extractors]]
+    type = "regex"
+    name = "journal_metadata"
+    description = "Extracts journal-specific metadata like impact factor, volume, and issue numbers."
+      [domain.biomedical_research.pipeline.enrichment.extractors.entities]
+      # Journal Impact Factor
+      ImpactFactor = '(?:Impact Factor|IF):\\s*(\\d{1,3}\\.\\d{1,3})'
+      # Journal Volume and Issue number
+      VolumeIssue = '(?:Volume|Vol\\.?)\\s*(\\d+),\\s*(?:Issue|No\\.?)\\s*(\\d+)'
+      # General URL for websites
+      URL = '\\bhttps?://(?:www\\.)?[\\w.-]+\\.[a-zA-Z]{2,}(?:/\\S*)?\\b'
+      # Common access rights statements
+      AccessRights = '\\b(Open Access|Subscription|Embargo|Free to read)\\b'
+      # Copyright statements and Creative Commons licenses
+      License = '\\b(©\\s*\\d{4}.*|All rights reserved|CC\\sBY(?:-NC|-SA|-ND)?(?:-4\\.0)?)\\b'
+      # Supported file formats
+      FileFormat = '\\b(PDF|HTML|XML|EPUB)\\b'
+      # Monetary budget values
+      Budget = '(?:\\$|€|£)\\s?\\d{1,3}(?:,?\\d{3})*(?:\\.\\d{2})?'
+
+    [[domain.biomedical_research.pipeline.enrichment.extractors]]
+    type = "regex"
+    name = "article_metadata"
+    description = "Extracts article-specific details like author emails, page ranges, and citation counts."
+      [domain.biomedical_research.pipeline.enrichment.extractors.entities]
+      # Author email address
+      AuthorEmail = '\\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}\\b'
+      # Full article citation details: Volume, Issue (optional), and page range
+      VolumeIssuePages = '(?:Vol\\.?|Volume)\\s*(\\d+)(?:\\s*\\(([^)]+)\\))?,\\s*(?:pp?\\.?|pages)?\\s*(\\d+)[-–](\\d+)'
+      # Keywords or index terms line
+      Keywords = '(?:Keywords|Key words|Index terms)[:\\s]+(.+)'
+      # Number of citations
+      CitationCount = 'Cited by[:\\s]+(\\d+)'
+
+    [[domain.biomedical_research.pipeline.enrichment.extractors]]
+    type = "regex"
+    name = "dissertation_metadata"
+    description = "Extracts metadata specific to dissertations and theses."
+      [domain.biomedical_research.pipeline.enrichment.extractors.entities]
+      # Thesis advisor or supervisor
+      Advisor = '(?:Advisor|Supervisor)s?:\\s*(.+)'
+      # Type of dissertation (Bachelor's, Master's, PhD)
+      DissertationType = "\\b(Bachelor(?:[\\'’]s)?|B\\.S\\.?|Master(?:[\\'’]s)?|M\\.Sc\\.?|PhD|Doctoral)\\s+(?:Thesis|Dissertation)\\b"
+
+      # Number of pages in the document
+      PageCount = '(\\d+)\\s*(?:pages|pp?)\\b'
+      # National repository ID (e.g., for Irandoc)
+      RepositoryID = '(?:Irandoc|Repository)\\sID[:\\s]+(\\S+)'
+
+   [[domain.biomedical_research.pipeline.enrichment.extractors]]
+    type = "regex"
+    name = "project_metadata"
+    description = "Extracts metadata for research projects, including roles, status, and ethics."
+      [domain.biomedical_research.pipeline.enrichment.extractors.entities]
+      # Principal Investigator (PI)
+      PrincipalInvestigator = '(?:Principal Investigator|PI)[:\\s]+(.+)'
+      # Project status
+      ProjectStatus = '\\b(Current|In Progress|Completed|Finished)\\b'
+      # Ethics approval or IRB code
+      EthicsApproval = '(?:Ethics Approval|IRB)[ #:]\\s*(\\S+)'
+      # Project start and end dates
+      ProjectDates = '(?:Start Date|From)[:\\s]*(\\S+)\\s*(?:to|End Date)[:\\s]*(\\S+)'
+
+    [[domain.biomedical_research.pipeline.enrichment.extractors]]
+    type = "regex"
+    name = "technical_metadata"
+    description = "Extracts technical metadata like MIME types and schema declarations for interoperability."
+      [domain.biomedical_research.pipeline.enrichment.extractors.entities]
+      # MIME file type
+      MIMEType = '(?:MIME|File Type)[:\\s]*([a-zA-Z]+/[a-zA-Z0-9.+-]+)'
+      # Metadata schema from an XML attribute
+      SchemaXML = '(?:Schema|xmlns):[a-zA-Z]*="([^"]+)"'
+      # URL for an OAI-PMH or OAI-ORE endpoint
+      OaiURL = '\\bhttps?://\\S+oai\\S*\\b'
+
+    [[domain.biomedical_research.pipeline.enrichment.extractors]]
+    type = "ner_model"
+    name = "biomedical_ner"
+    description = "A fallback model to catch biomedical terms not covered by regex."
+    model_path = "/models/SciBERT-NER" 
+    # This model can identify diseases, chemicals, organisms etc.
+    # not implemented yet
