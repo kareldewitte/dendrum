@@ -19,6 +19,13 @@ Dendrum is a high-performance, local-first RAG (Retrieval-Augmented Generation) 
 
 ⚡ System Dashboard: A statistics page to monitor the number of documents and data chunks in your database.
 
+<img src="assets/1.png" width="256"/><img src="assets/2.png" width="256"/><img src="assets/3.png" width="256"/>
+
+
+
+
+
+
 # 🏁 Quick Start: Running with Docker Compose
 This project is distributed as a set of Docker containers. The easiest way to run the entire stack is with docker-compose.
 
