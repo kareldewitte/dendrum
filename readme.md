@@ -1,6 +1,6 @@
-![logo |512x512](assets/logo-dendrum.jpeg)
+<!-- ![logo](assets/logo-dendrum.jpeg) -->
 
-
+<img src="assets/logo-dendrum.jpeg" width="512">
 
 Dendrum is a high-performance, local-first RAG (Retrieval-Augmented Generation) system. It allows you to ingest documents into a local vector database and use a web interface to search and chat with your data.
 
