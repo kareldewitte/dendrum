@@ -19,7 +19,7 @@ Dendrum is a high-performance, local-first RAG (Retrieval-Augmented Generation) 
 
 ⚡ System Dashboard: A statistics page to monitor the number of documents and data chunks in your database.
 
-<img src="assets/1.png" width="256"/><img src="assets/2.png" width="256"/><img src="assets/3.png" width="256"/>
+<img src="assets/1.png" width="368"/><img src="assets/2.png" width="368"/><img src="assets/3.png" width="368"/>
 
 
 
@@ -52,17 +52,17 @@ version: '3.8'
 services:
   # The main API backend (Rust)
   dendrum-server:
-    image: kareldewitte/dendrum-server:preview-community
+    image: kareldewitte/dendrum-server:preview-community 
     platform: linux/amd64
     hostname: dendrum-server
     restart: unless-stopped
     ports:
       - "8001:8001"
     volumes:
-      # Links the shared data volume
-      - dendrum-server:/data
+      # Links the shared data volume, replace . with your desired path
+      - .:/data 
       # Links your local config file into the container
-      - ./processing_config.toml:/app/processing_config.toml:ro
+      - ./processing_config_community.toml:/app/processing_config.toml:ro
     environment:
       - OPENAI_TOKEN=${OPENAI_TOKEN}
       - BIND_ADRESS=0.0.0.0:8001
@@ -71,25 +71,27 @@ services:
 
   # The background merger service (Rust)
   dendrum-merger:
-    image: kareldewitte/dendrum-server:preview-community
+    image: kareldewitte/dendrum-server:preview-community 
     platform: linux/amd64
     restart: unless-stopped
     volumes:
       # Needs access to the same data volume
-      - dendrum-server:/data
+      #- dendrum-server:/data
+      - .:/data 
       # Needs access to the same config file
-      - ./processing_config.toml:/app/processing_config.toml:ro
+      - ./processing_config_community.toml:/app/processing_config.toml:ro
     environment:
       - OPENAI_TOKEN=${OPENAI_TOKEN}
       - SERVICE_MODE=merger
       - RUST_LOG=info
+      - MERGE_SERVER=dendrum-server:8001
     depends_on:
       - dendrum-server
 
   # The web frontend (Nuxt)
   dendrum-frontend:
-    image: kareldewitte/dendrum-front:preview-community
-    platform: linux/amd64
+    image: kareldewitte/dendrum-front:preview-community 
+    platform: linux/arm64
     restart: unless-stopped
     ports:
       - "3000:3000"
@@ -98,6 +100,7 @@ services:
       - NODE_ENV=production
     depends_on:
       - dendrum-server
+
 ```
 
 # Define the named volume for persistent data
