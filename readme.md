@@ -1,3 +1,7 @@
+![alt text](assets/logo-dendrum.jpeg)
+
+
+
 Dendrum is a high-performance, local-first RAG (Retrieval-Augmented Generation) system. It allows you to ingest documents into a local vector database and use a web interface to search and chat with your data.
 
 # Features
