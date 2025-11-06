@@ -10,8 +10,8 @@ services:
     ports:
       - "8001:8001"
     volumes:
-      # Links the shared data volume
-      - {your db folder outside of the container}:/data 
+      # Links the shared data volume, replace . with your desired path
+      - .:/data 
       # Links your local config file into the container
       - ./processing_config_community.toml:/app/processing_config.toml:ro
     environment:
@@ -28,13 +28,14 @@ services:
     volumes:
       # Needs access to the same data volume
       #- dendrum-server:/data
-      - {your db folder outside of the container}:/data 
+      - .:/data 
       # Needs access to the same config file
       - ./processing_config_community.toml:/app/processing_config.toml:ro
     environment:
       - OPENAI_TOKEN=${OPENAI_TOKEN}
       - SERVICE_MODE=merger
       - RUST_LOG=info
+      - MERGE_SERVER=dendrum-server:8001
     depends_on:
       - dendrum-server
 
