@@ -1,0 +1,38 @@
+End-User License Agreement (EULA) for Dendrum
+Effective Date: November 17, 2025
+
+This End-User License Agreement ("EULA") is a legally binding agreement between you ("You" or "User") and the individual author ("Author") of the software product known as Dendrum, including any associated Docker images, media, and documentation (collectively, "the Software").
+
+By downloading, installing, pulling, or otherwise using the Software, you acknowledge that you have read this EULA, understand it, and agree to be bound by its terms and conditions. If you do not agree to the terms of this EULA, do not download, install, or use the Software.
+
+1. License Grant
+The Author grants you a free-of-charge, non-exclusive, non-transferable, revocable, and limited license to install and use the Software for your personal or internal business purposes, subject to the terms of this EULA.
+
+2. Restrictions
+You agree not to, and you will not permit others to:
+
+(a) Reverse Engineer: Reverse engineer, decompile, disassemble, or otherwise attempt to discover the source code or underlying ideas or algorithms of the Software.
+
+(b) Modify or Distribute: Modify, translate, rent, lease, loan, sell, or create derivative works based on the Software, or distribute the Software in any way.
+
+(c) Remove Notices: Remove or alter any copyright, trademark, or other proprietary notices or labels on the Software.
+
+(d) Use Unlawfully: Use the Software for any purpose that is illegal or prohibited by this EULA.
+
+3. Disclaimer of Warranty
+THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT.
+
+THE AUTHOR DOES NOT WARRANT THAT THE SOFTWARE WILL MEET YOUR REQUIREMENTS, THAT THE OPERATION OF THE SOFTWARE WILL BE UNINTERRUPTED OR ERROR-FREE, OR THAT DEFECTS IN THE SOFTWARE WILL BE CORRECTED. THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE SOFTWARE IS WITH YOU.
+
+4. Limitation of Liability
+IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, INCIDENTAL, INDIRECT, OR CONSEQUENTIAL DAMAGES WHATSOEVER (INCLUDING, BUT NOT LIMITED TO, DAMAGES FOR LOSS OF PROFITS, LOSS OF DATA, BUSINESS INTERRUPTION, OR ANY OTHER PECUNIARY LOSS) ARISING OUT OF THE USE OF OR INABILITY TO USE THE SOFTWARE, EVEN IF THE AUTHOR HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+THE AUTHOR'S TOTAL LIABILITY TO YOU FOR ALL DAMAGES, LOSSES, AND CAUSES OF ACTION (WHETHER IN CONTRACT, TORT (INCLUDING NEGLIGENCE), OR OTHERWISE) SHALL NOT EXCEED THE AMOUNT OF ZERO (0.00 CHF).
+
+THIS LIMITATION OF LIABILITY SHALL APPLY TO THE FULLEST EXTENT PERMITTED BY LAW. UNDER SWISS LAW, THIS LIMITATION IS NOT INTENDED TO EXCLUDE LIABILITY FOR GROSS NEGLIGENCE OR MALICIOUS INTENT.
+
+5. Termination
+This EULA is effective until terminated. Your rights under this license will terminate automatically without notice from the Author if you fail to comply with any term(s) of this EULA. Upon termination, you must cease all use of the Software and destroy all copies of the Software in your possession.
+
+6. Governing Law
+This EULA shall be governed by and construed in accordance with the laws of Switzerland, without regard to its conflict of law principles. Any disputes arising from this EULA shall be subject to the exclusive jurisdiction of the courts in the Author's place of residence in Switzerland.
