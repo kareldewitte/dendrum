@@ -4,6 +4,9 @@
 
 Dendrum is a high-performance, local-first RAG (Retrieval-Augmented Generation) system. It allows you to ingest documents into a local vector database and use a web interface to search and chat with your data.
 
+
+
+
 # Features
 ⚡ High-Performance Backend: The dendrum API is built in Rust using the axum framework for high throughput and low memory usage. Fully accessible via API. Build your own ingestion runners and send data to backend.
 
@@ -21,10 +24,9 @@ Dendrum is a high-performance, local-first RAG (Retrieval-Augmented Generation) 
 
 <img src="assets/1.png" width="368"/><img src="assets/2.png" width="368"/><img src="assets/3.png" width="368"/>
 
+## License
 
-
-
-
+This is a closed-source project. By downloading, pulling, or using the Docker images provided in this repository, you are agreeing to the terms and conditions specified in the [license.txt](license.txt) file.
 
 # 🏁 Quick Start: Running with Docker Compose
 This project is distributed as a set of Docker containers. The easiest way to run the entire stack is with docker-compose.
